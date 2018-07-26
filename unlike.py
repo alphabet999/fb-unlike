@@ -82,8 +82,7 @@ def get_all_links(username):
             liked_page_list.append(link)
     return liked_page_list
 
-def unlike_page(page_url):
-    status = 0
+def unlike_page(page_url,status = 0):
     driver.execute_script("window.open('');")
     # Switch to the new window
     driver.switch_to.window(driver.window_handles[1])
@@ -110,9 +109,13 @@ def action(total_pages_like):
         count = 0
         for i in range(0,refresh_list):
             status = unlike_page(liked_page_list[i])
-            if status>0:
-                sys.stdout.write("\r%d page unliked" % status)
+            if status == 1:
+                count = count + 1
+                sys.stdout.write("\r%d page unliked" % count)
                 sys.stdout.flush()
+        total_pages_like = total_pages_like(username)
+        action(total_pages_like)
+        
     else:
         exit()
 
@@ -142,10 +145,10 @@ else:
 
 print(":unlike facebook pages:")
 options = Options()
-#options.add_argument("--headless")
+options.add_argument("--headless")
 driver = webdriver.Firefox(firefox_options=options)
 
 if login(username,passw):
     total_pages_like = total_pages_like(username)
     action(total_pages_like)
-    exit()
+    print("\nGood Bye!")
