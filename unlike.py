@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import time
 import re
 import sys
@@ -22,7 +23,7 @@ def login(username,passw):
         driver.get("https://mbasic.facebook.com/login/save-device/cancel/?flow=interstitial_nux&nux_source=regular_login")
         return 1
     except TimeoutException:
-        print("Loading took too much time!")
+        print("Not able to Login!")
         return 0
 
 def total_pages_like(username):
@@ -32,12 +33,15 @@ def total_pages_like(username):
     try:
         driver.get("https://www.facebook.com/"+username+"/likes")
         myElem = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, 'All Likes')))
-    except TimeoutException:
-        print("Loading took too much time!")
-    total_likes  = driver.find_element_by_name('All Likes')
-    total_likes = total_likes.text
-    total_likes = total_likes.replace('All Likes','')
-    total_likes = total_likes.replace(",","")
+        total_likes  = driver.find_element_by_name('All Likes')
+        total_likes = total_likes.text
+        total_likes = total_likes.replace('All Likes','')
+        total_likes = total_likes.replace(",","")
+        if total_likes is not "":
+            print("Total Pages Liked: ",total_likes)
+    except:
+        print("Can't Fetch No of Pages Liked!")
+
     driver.close()
     # Switch back to the first tab
     driver.switch_to.window(driver.window_handles[0])
@@ -46,78 +50,41 @@ def total_pages_like(username):
 def get_username():
     return sys.argv[0]
 
-def get_all_links(username):
-    driver.get("https://mbasic.facebook.com/"+username+"?v=likes")
+
+def unlike_page(count = 0, refreshed = 1):
+    try:
+        driver.get("https://mtouch.facebook.com/pages/launchpoint/liked_pages/?ref=bookmarks&from=pages_nav_home")
+        time.sleep(1)
+    except TimeoutException:
+        print("Failed to load!")
+
     elems = driver.find_elements_by_xpath("//a[@href]")
-    liked_page_list = list()
+    if len(elems) is 0:
+        return 0
     for elem in elems:
         link = elem.get_attribute("href")
-        regexes = [
-            "/notes/",
-            "/saved/",
-            "/home.php/",
-            "/messages/",
-            "/notifications.php",
-            "/buddylist.php",
-            "/friends/",
-            "/pages/",
-            "/groups/",
-            "/events/",
-            "/settings/",
-            "/help/",
-            "/menu/",
-            "/photo.php",
-            "/"+username,
-            "/allactivity",
-            "/privacyx/",
-            "v=likes",
-            "/timeline/",
-            "/bugnub/",
-            "/policies/",
-            "logout.php",
-            "home.php"
-            ]
-        combined = "(" + ")|(".join(regexes) + ")"
-        if not (re.search(combined, link)):
-            liked_page_list.append(link)
-    return liked_page_list
-
-def unlike_page(page_url,status = 0):
-    driver.execute_script("window.open('');")
-    # Switch to the new window
-    driver.switch_to.window(driver.window_handles[1])
-    driver.get(page_url)
-    try:
-        driver.find_element_by_partial_link_text('Unlike').click()
-        status = status + 1
-    except:
-        pass
-
-    driver.close()
-    # Switch back to the first tab
-    driver.switch_to.window(driver.window_handles[0])
-    return status
-
-def action(total_pages_like):
-    total_pages_like = int(total_pages_like)
-    print("Total Pages Liked: ",total_pages_like)
-
-    if total_pages_like>0:
-        liked_page_list = get_all_links(username)
-        liked_page_list.reverse()
-        refresh_list = len(liked_page_list)
-        count = 0
-        for i in range(0,refresh_list):
-            status = unlike_page(liked_page_list[i])
-            if status == 1:
+        if "unfan" in link:
+            if navigate_unfan(link):
                 count = count + 1
                 sys.stdout.write("\r%d page unliked" % count)
                 sys.stdout.flush()
-        total_pages_like = total_pages_like(username)
-        action(total_pages_like)
-        
-    else:
-        exit()
+
+    refreshed = refreshed + 1
+    unlike_page(count, refreshed)
+    return 0
+
+def navigate_unfan(link,status = 0):
+    driver.execute_script("window.open('');")
+    # Switch to the new window
+    driver.switch_to.window(driver.window_handles[1])
+    try:
+        driver.get(link)
+        status = 1
+    except:
+        print("Failed to load!")
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])
+    return status
 
 ################################MAIN############################################
 print("              ___ __                 ____")
@@ -150,5 +117,5 @@ driver = webdriver.Firefox(firefox_options=options)
 
 if login(username,passw):
     total_pages_like = total_pages_like(username)
-    action(total_pages_like)
+    unlike_page()
     print("\nGood Bye!")
